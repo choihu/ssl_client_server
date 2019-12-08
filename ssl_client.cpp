@@ -86,6 +86,9 @@ void recv_msg(SSL *ssl) {
 		char buf[BUFSIZE];
 		int bytes;
 		bytes = SSL_read(ssl, buf, sizeof(buf)); /* get reply & decrypt */
+		if(bytes <= 0) {
+			break;
+		}
         	buf[bytes] = 0;
         	printf("Received msg: %s\n", buf);
 	}

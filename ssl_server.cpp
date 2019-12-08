@@ -106,7 +106,7 @@ void ShowCerts(SSL* ssl)
     else
         printf("No certificates.\n");
 }
-void Servlet(SSL* ssl, bool broadcast) /* Serve the connection -- threadable */
+void Servlet(SSL* ssl, bool broadcast, struct sockaddr_in addr) /* Serve the connection -- threadable */
 {
     char buf[1024] = {0};
     int sd, bytes;
@@ -120,7 +120,7 @@ void Servlet(SSL* ssl, bool broadcast) /* Serve the connection -- threadable */
 	if(bytes <= 0) 
 		break;
         buf[bytes] = '\0';
-        printf("Client msg: %s\n", buf);
+        printf("Client with port %d msg: %s\n", ntohs(addr.sin_port), buf);
         if (broadcast)
         {
 	    for(vector<SSL*>::iterator it = childfd.begin(); it != childfd.end(); it++) {
@@ -134,6 +134,7 @@ void Servlet(SSL* ssl, bool broadcast) /* Serve the connection -- threadable */
 
     for(vector<SSL*>::iterator it = childfd.begin(); it != childfd.end(); ) {
 	    if(*it == ssl) {
+		    printf("Disconnection: %s:%d\n",inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
 		    m.lock();
 		    childfd.erase(it);
 		    m.unlock();
@@ -184,9 +185,10 @@ int main(int count, char *Argc[])
     ctx = InitServerCTX();        /* initialize SSL */
     LoadCertificates(ctx, "mycert.pem", "mycert.pem"); /* load certs */
     server = OpenListener(atoi(portnum));    /* create server socket */
+    printf("Complete server setting and waiting for connection\n");
+    struct sockaddr_in addr;
     while (1)
     {
-        struct sockaddr_in addr;
         socklen_t len = sizeof(addr);
         SSL *ssl;
         int client = accept(server, (struct sockaddr*)&addr, &len);  /* accept connection as usual */
@@ -199,7 +201,7 @@ int main(int count, char *Argc[])
 	childfd.push_back(ssl);
 	m.unlock();
 	
-	thread t(Servlet, ssl, broadcast);
+	thread t(Servlet, ssl, broadcast, addr);
         t.detach();         /* service connection */
     }
     close(server);          /* close server socket */
