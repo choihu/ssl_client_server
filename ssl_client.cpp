@@ -72,7 +72,7 @@ void send_msg(SSL *ssl) {
 	while(true) {
 		const static int BUFSIZE = 1024;
 		char buf[BUFSIZE];
-		scanf("%s", buf);
+		fgets(buf, sizeof(buf), stdin);
 		if (strcmp(buf, "quit") == 0) break;
 
 		SSL_write(ssl, buf, strlen(buf));

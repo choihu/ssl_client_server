@@ -123,25 +123,26 @@ void Servlet(SSL* ssl, bool broadcast, struct sockaddr_in addr) /* Serve the con
         printf("Client with port %d msg: %s\n", ntohs(addr.sin_port), buf);
         if (broadcast)
         {
+	    m.lock();
 	    for(vector<SSL*>::iterator it = childfd.begin(); it != childfd.end(); it++) {
 		    SSL_write(*it, buf, strlen(buf));
 	    }
+	    m.unlock();
         }
 	else {
 	    SSL_write(ssl, buf, strlen(buf));
 	}
     }
-
+    m.lock();
     for(vector<SSL*>::iterator it = childfd.begin(); it != childfd.end(); ) {
 	    if(*it == ssl) {
 		    printf("Disconnection: %s:%d\n",inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-		    m.lock();
 		    childfd.erase(it);
-		    m.unlock();
 	    }
 	    else
 		    it++;
     }
+    m.unlock();
     sd = SSL_get_fd(ssl);       /* get socket connection */
     SSL_free(ssl);         /* release SSL state */
     close(sd);          /* close connection */
